@@ -3,4 +3,6 @@
  * @brief Constants
  */
 
+#pragma once
+
 bool debug = true;

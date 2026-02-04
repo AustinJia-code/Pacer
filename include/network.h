@@ -14,7 +14,7 @@
 /**
  * Create a UDP socket. Returns fd or -1 on failure.
  */
-static inline int create_udp_socket ()
+inline int create_udp_socket ()
 {
     int sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock < 0)
@@ -26,7 +26,7 @@ static inline int create_udp_socket ()
 /**
  * Build a sockaddr_in bound to INADDR_ANY on the given port.
  */
-static inline sockaddr_in make_bind_addr (int port)
+inline sockaddr_in make_bind_addr (int port)
 {
     sockaddr_in addr {};
     addr.sin_family = AF_INET;
@@ -39,7 +39,7 @@ static inline sockaddr_in make_bind_addr (int port)
 /**
  * Build a sockaddr_in targeting the given ip and port.
  */
-static inline sockaddr_in make_dest_addr (const char* ip, int port)
+inline sockaddr_in make_dest_addr (const char* ip, int port)
 {
     sockaddr_in dest {};
     dest.sin_family = AF_INET;
@@ -52,7 +52,7 @@ static inline sockaddr_in make_dest_addr (const char* ip, int port)
 /**
  * Bind a socket. Returns 0 on success.
  */
-static inline int bind_socket (int sock, int port)
+inline int bind_socket (int sock, int port)
 {
     sockaddr_in addr = make_bind_addr (port);
     return bind (sock, (sockaddr*) &addr, sizeof (addr));
@@ -61,7 +61,7 @@ static inline int bind_socket (int sock, int port)
 /**
  * Receive a packet. Returns bytes read, or < 1 on failure.
  */
-static inline ssize_t receive_packet (int sock, Packet& packet)
+inline ssize_t receive_packet (int sock, Packet& packet)
 {
     ssize_t ret = recv (sock, &packet, sizeof (packet), 0);
     
@@ -75,7 +75,7 @@ static inline ssize_t receive_packet (int sock, Packet& packet)
  * Send a packet to a destination. Returns sendto result.
  * Adjusts packet endianness
  */
-static inline ssize_t send_packet (int sock, Packet& packet,
+inline ssize_t send_packet (int sock, Packet& packet,
                                    const sockaddr_in& dest)
 {
     packet.id = ntohl (packet.id);

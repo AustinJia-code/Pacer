@@ -13,6 +13,7 @@ add_library (pacer_core INTERFACE)
 # Attach all the includes/libraries to the core
 target_include_directories (pacer_core INTERFACE 
     include 
+    include/hazard
     lib
 )
 

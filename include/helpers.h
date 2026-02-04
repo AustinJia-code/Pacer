@@ -3,12 +3,14 @@
  * @brief Various helper functions
  */
 
+#pragma once
+
 #include "types.h"
 
 /*
- * sec_t to usec_t conversion
+ * sec_t to us_t conversion
  */
-static inline usec_t sec_to_usec (sec_t ts)
+inline us_t sec_to_usec (sec_t ts)
 {
-    return (usec_t) (ts * 1000000);
+    return (us_t) (ts * 1000000);
 }

@@ -5,8 +5,11 @@
 
 #include "network.h"
 #include "consts.h"
+#include "hazards.h"
+#include "metrics.h"
 #include <cstdlib>
 #include <iostream>
+#include <variant>
 
 /**
  * Runner
@@ -38,7 +41,9 @@ int main (int argc, char* argv[])
     if (debug)
         std::cout << "Emulating..." << std::endl;
 
-    Packet packet;
+    RandomLoss hazard {};
+    // Metrics metrics
+    Packet packet {};
 
     while (true)
     {
@@ -51,7 +56,12 @@ int main (int argc, char* argv[])
         if (debug)
             std::cout << "Applying hazards" << std::endl;
 
-        // TODO: APPLY HAZARDS!!! RAH
+        if (hazard.get_effects (packet.id).drop)
+        {
+            if (debug)
+                std::cout << "Dropped ID " << packet.id << std::endl;
+            continue;
+        }   
 
         if (debug)
             std::cout << "Forwarding ID " << packet.id << std::endl;
