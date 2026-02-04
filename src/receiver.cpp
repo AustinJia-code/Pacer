@@ -3,46 +3,46 @@
  * @brief Receives packets
  */
 
-#include "packet.h"
-#include <arpa/inet.h>
-#include <cstdio>
-#include <cstring>
-#include <unistd.h>
-#include <stdlib.h>
-#include <iostream>
+#include "network.h"
 #include "consts.h"
+#include <cstdlib>
+#include <iostream>
 
 /**
  * Runner
  */
-int main ()
+int main (int argc, char* argv[])
 {
-    // IPv4, UDP
-    int sock;
-    if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+    // Read ports
+    if (argc < 2)
+    {
+        std::cerr << "Usage: ./receiver [port]" << std::endl;
         return EXIT_FAILURE;
-    
-    // Build IPv4
-    sockaddr_in addr {};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons (port);
+    }
 
-    bind (sock, (sockaddr*) &addr, sizeof (addr));
+    int port = atoi (argv[1]);
+
+    int sock = create_udp_socket ();
+    if (sock < 0)
+        return EXIT_FAILURE;
+
+    bind_socket (sock, port);
 
     // Listen
     if (debug)
-        std::cout << "RECEIVING..." << std::endl;
+        std::cout << "Receiving..." << std::endl;
 
     Packet packet;
+
     while (true)
     {
-        ssize_t byte_count;
-        if (byte_count = recv (sock, &packet, sizeof (packet), 0) < 1)
+        if (receive_packet (sock, packet) < 1)
+        {
+            std::cerr << "Issue reading from socket" << std::endl;
             continue;
-        
-        id_t id = ntohl (packet.id);
+        }
+
         if (debug)
-            std::cout << "ID " << id << " Received." << std::endl;
+            std::cout << "ID " << packet.id << " Received." << std::endl;
     }
 }

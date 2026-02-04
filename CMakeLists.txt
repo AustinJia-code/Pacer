@@ -27,5 +27,5 @@ target_link_libraries (sender PRIVATE pacer_core)
 add_executable (receiver src/receiver.cpp)
 target_link_libraries (receiver PRIVATE pacer_core)
 
-# add_executable (emulator src/emulator.cpp)
-# target_link_libraries (emulator PRIVATE emulator_core)
+add_executable (emulator src/emulator.cpp)
+target_link_libraries (emulator PRIVATE pacer_core)
