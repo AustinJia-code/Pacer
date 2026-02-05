@@ -11,8 +11,8 @@ make
 
 # Run:
 In separate terminals:                                                         \
-```./sender [bind port] [dest port]```
-```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]```
+```./sender [bind port] [dest port]```                                         \
+```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]``` \
 ```./receiver [bind port] [ack dest port]```
 
 Example:       
