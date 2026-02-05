@@ -10,6 +10,7 @@
 #include <cstring>
 #include <iostream>
 #include <unistd.h>
+#include <poll.h>
 
 /**
  * Create a UDP socket. Returns fd or -1 on failure.
@@ -59,31 +60,72 @@ inline int bind_socket (int sock, int port)
 }
 
 /**
- * Receive a packet. Returns bytes read, or < 1 on failure.
+ * Receive a data packet. Returns bytes read, or < 1 on failure.
  */
-inline ssize_t receive_packet (int sock, Packet& packet)
+inline ssize_t receive_data (int sock, DataPacket& packet)
 {
-    ssize_t ret = recv (sock, &packet, sizeof (packet), 0);
+    packet = {};
+    ssize_t ret = recv (sock, &packet, sizeof (DataPacket), 0);
     
-    packet.id = ntohl (packet.id);
+    packet.header.id = ntohl (packet.header.id);
     packet.byte_count = ntohl (packet.byte_count);
 
     return ret;
 }
 
 /**
- * Send a packet to a destination. Returns sendto result.
+ * Send a data packet to a destination. Returns sendto result.
  * Adjusts packet endianness
  */
-inline ssize_t send_packet (int sock, const Packet& packet,
-                            const sockaddr_in& dest)
+inline ssize_t send_data (int sock, const DataPacket& packet,
+                          const sockaddr_in& dest)
 {
-    Packet out_packet {.id = ntohl (packet.id),
-                       .byte_count = ntohl (packet.byte_count)};
+    DataPacket out_packet {.header = {.type = PacketType::Data,
+                                      .id = htonl (packet.header.id)},
+                           .byte_count = htonl (packet.byte_count)};
+    memcpy (out_packet.payload, packet.payload, packet.byte_count);
 
-    size_t len = sizeof (packet.id) + sizeof (packet.byte_count)
-                                    + packet.byte_count;
+    // Only send size assigned of full allocation
+    size_t len = sizeof (packet.header.id) + sizeof (packet.byte_count)
+                                           + packet.byte_count;
 
     return sendto (sock, &out_packet, len, 0,
+                   (const sockaddr*) &dest, sizeof (dest));
+}
+
+/**
+ * Receive an ack packet. Returns bytes read, < 1 on failure or timeout.
+ */
+inline ssize_t receive_ack (int sock, AckPacket& packet, ms_t ack_timeout)
+{
+    packet = {};
+
+    // Set up timeout
+    pollfd pollfds[1] = {{.fd = sock, .events = POLLIN}};
+    
+    // Wait on socket until data available or timeout
+    int ready = poll (pollfds, 1, (int) ack_timeout);
+    
+    if (ready < 1)
+        return -1;  // Error or timeout
+    
+    // Get data
+    ssize_t ret = recv (sock, &packet, sizeof (AckPacket), 0);
+    if (ret > 0)
+        packet.header.id = ntohl (packet.header.id);
+
+    return ret;
+}
+
+/*
+ * Send an ack packet to a destination. Returns sendto result.
+ */
+inline ssize_t send_ack (int sock, const AckPacket& packet,
+                         const sockaddr_in& dest)
+{
+    AckPacket out_packet {.header = {.type = PacketType::Ack,
+                                     .id = htonl (packet.header.id)}};
+    
+    return sendto (sock, &out_packet, sizeof (AckPacket), 0,
                    (const sockaddr*) &dest, sizeof (dest));
 }

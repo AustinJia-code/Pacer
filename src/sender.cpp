@@ -15,38 +15,53 @@
  */
 int main (int argc, char* argv[])
 {
-    // Read ports
-    if (argc < 2)
+    /**** START RECEIVE ****/
+    if (argc < 3)
     {
-        std::cerr << "Usage: ./sender [port]" << std::endl;
+        std::cerr << "Usage: ./sender [bind port] [dest port]" << std::endl;
         return EXIT_FAILURE;
     }
 
-    int port = atoi (argv[1]);
+    int bind_port = atoi (argv[1]);
+    int dest_port = atoi (argv[2]);
 
     int sock = create_udp_socket ();
     if (sock < 0)
         return EXIT_FAILURE;
 
-    sockaddr_in dest = make_dest_addr ("127.0.0.1", port);
+    // Ack receive
+    if (bind_socket (sock, bind_port) < 0)
+    {
+        std::cerr << "Issue binding sender" << std::endl;
+        return EXIT_FAILURE;
+    }
 
-    // Send
+    // Data send
+    sockaddr_in data_dest_addr = make_dest_addr ("127.0.0.1", dest_port);
+
+    /**** START SEND ****/
     if (debug)
         std::cout << "Sending..." << std::endl;
 
-    Packet packet;
+    DataPacket data_packet;
+    AckPacket ack_packet;
 
     for (id_t id = 0; id < (2 << 10); ++id)
     {
-        packet.id = id;
-        packet.byte_count = 0;
+        // Send data
+        data_packet.header = {.type = PacketType::Data, .id = id};
+        data_packet.byte_count = 0;
 
         if (debug)
-            std::cout << "Sending ID " << packet.id << std::endl;
+            std::cout << "Sending ID " << data_packet.header.id << std::endl;
 
-        if (send_packet (sock, packet, dest) < 0)
+        if (send_data (sock, data_packet, data_dest_addr) < 0)
             std::cerr << "Issue sending to socket" << std::endl;
 
-        usleep (sec_to_usec ({sec_t {0.1}}));
+        // Listen for ack, retransmit if needed (sloppy implementation)
+        if (receive_ack (sock, ack_packet, ack_timeout) < 1)
+            --id;
+
+        usleep (sec_to_us ({sec_t {0.1}}));
     }
 }

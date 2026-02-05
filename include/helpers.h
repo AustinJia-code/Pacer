@@ -18,7 +18,7 @@ inline ms_t ns_to_ms (ns_t ns)
 /*
  * sec_t to us_t conversion
  */
-inline us_t sec_to_usec (sec_t ts)
+inline us_t sec_to_us (sec_t ts)
 {
     return (us_t) (ts * 1000000);
 }

@@ -8,6 +8,7 @@
 #include "effects.h"
 #include <random>
 #include <algorithm>
+#include <packet.h>
 
 /**
  * Defines effects of environmental hazards on packet properties
@@ -18,7 +19,7 @@ public:
     virtual ~HazardProfile () = default;
     
     // Returns HazardProfile effects on a specific packet id
-    virtual Effects get_effects (id_t id) = 0;
+    virtual Effects get_effects (PacketType type, id_t id) = 0;
 };
 
 /**
@@ -40,7 +41,7 @@ public:
     RandomLoss (float loss_ratio = 0.05, unsigned int seed = 0)
         : drop_dist (loss_ratio), rng (seed) {}
 
-    Effects get_effects (id_t id) override
+    Effects get_effects (PacketType type, id_t id) override
     {
         return Effects
         {
@@ -71,7 +72,7 @@ public:
                unsigned int seed = 0)
         : loss_dist (loss_ratio), burst_start_dist (drop_chance), rng (seed) {}
 
-    Effects get_effects (id_t) override
+    Effects get_effects (PacketType type, id_t id) override
     {
         Effects effects {};
         effects.delay = ms_t {0};
@@ -112,7 +113,7 @@ public:
                   unsigned int seed = 0)
         : dist (mean_delay, std_delay), rng (seed) {}
 
-    Effects get_effects (id_t id) override
+    Effects get_effects (PacketType type, id_t id) override
     {
         return Effects
         {
