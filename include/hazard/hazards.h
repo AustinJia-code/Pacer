@@ -108,19 +108,16 @@ private:
     ms_t max_delay;
 
 public:
-    RandomJitter (ms_t min_delay = 0, ms_t max_delay = 100,
+    RandomJitter (ms_t mean_delay = 100, ms_t std_delay = 80,
                   unsigned int seed = 0)
-        : min_delay (min_delay), max_delay (max_delay),
-          dist ((min_delay + max_delay) / 2.0, (max_delay - max_delay) / 6.0),
-          rng (seed) {}
+        : dist (mean_delay, std_delay), rng (seed) {}
 
     Effects get_effects (id_t id) override
     {
         return Effects
         {
             .drop = false,
-            .delay = std::clamp (static_cast<ms_t> (dist (rng)),
-                                    min_delay, max_delay)
+            .delay = std::max (static_cast<ms_t> (dist (rng)), ms_t {0})
         };
     }
 };

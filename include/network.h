@@ -75,15 +75,15 @@ inline ssize_t receive_packet (int sock, Packet& packet)
  * Send a packet to a destination. Returns sendto result.
  * Adjusts packet endianness
  */
-inline ssize_t send_packet (int sock, Packet& packet,
-                                   const sockaddr_in& dest)
+inline ssize_t send_packet (int sock, const Packet& packet,
+                            const sockaddr_in& dest)
 {
-    packet.id = ntohl (packet.id);
-    packet.byte_count = ntohl (packet.byte_count);
+    Packet out_packet {.id = ntohl (packet.id),
+                       .byte_count = ntohl (packet.byte_count)};
 
     size_t len = sizeof (packet.id) + sizeof (packet.byte_count)
                                     + packet.byte_count;
-    std::cout << len << std::endl;
-    return sendto (sock, &packet, len, 0,
+
+    return sendto (sock, &out_packet, len, 0,
                    (const sockaddr*) &dest, sizeof (dest));
 }
