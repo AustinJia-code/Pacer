@@ -1,7 +1,6 @@
-# UDP-Based Custom Transport with Link Emulator
-
-Emulates and benchmarks network hazards between a sender and receiver using a
-custom UDP-based transport protocol. 
+# Pacer
+UDP-based transport and network emulator for studying packet pacing, burst loss,
+and recovery under high-latency directional links.
 
 # Build:
 ```bash
