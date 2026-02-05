@@ -21,14 +21,34 @@ Example:
 ./emulator 9001 9002 9003 9000 random-loss
 ./receiver 9003 9002                                                                 
 ```
+```mermaid
+%%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#1e3a5f','primaryTextColor':'#fff','primaryBorderColor':'#4a90e2','lineColor':'#4a90e2','secondaryColor':'#2d5986','tertiaryColor':'#1a1a2e'}}}%%
 
-    SENDER               EMULATOR              RECEIVER
-  bind: 9000            bind: 9001            bind: 9003
-                        bind: 9002             
-Data:
-    [9000] ---to 9001---> [9001]
-                          [9002] ---to 9003---> [9003]
+graph LR
+    subgraph SENDER
+        S["<b>bind: 9000</b><br/>[9000]"]
+    end
+    
+    subgraph EMULATOR
+        E1["<b>bind: 9001</b><br/>[9001]"]
+        E2["<b>bind: 9002</b><br/>[9002]"]
+    end
+    
+    subgraph RECEIVER
+        R["<b>bind: 9003</b><br/>[9003]"]
+    end
+    
+    S ===>|"Data<br/>to 9001"| E1
+    E2 ===>|"Data<br/>to 9003"| R
+    
+    E1 -. "ACK<br/>from 9001" .-> S
+    R -. "ACK<br/>from 9003" .-> E2
 
-ACKs:
-    [9000] <--from 9001-- [9001]
-                          [9002] <--from 9003-- [9003]
+    classDef senderStyle fill:#2d5986,stroke:#4a90e2,stroke-width:3px,color:#fff
+    classDef emulatorStyle fill:#1e3a5f,stroke:#4a90e2,stroke-width:3px,color:#fff
+    classDef receiverStyle fill:#2d5986,stroke:#4a90e2,stroke-width:3px,color:#fff
+    
+    class S senderStyle
+    class E1,E2 emulatorStyle
+    class R receiverStyle
+```
