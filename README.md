@@ -10,10 +10,10 @@ make
 ```
 
 ### Run:
-In separate terminals, preferably in order:                                    \
+In separate terminals:                                                         \
 ```./receiver [bind port] [ack dest port]```                                   \
 ```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]``` \
-```./sender [bind port] [dest port]```                                         \
+```./sender [bind port] [dest port]```
 
 Example:       
 ``` bash                                                                    
