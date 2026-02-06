@@ -11,6 +11,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <poll.h>
+#include <set>
 
 /**
  * Create a UDP socket. Returns fd or -1 on failure.
@@ -83,7 +84,8 @@ inline ssize_t send_data (int sock, const DataPacket& packet,
     DataPacket out_packet {.header = {.type = PacketType::Data,
                                       .id = htonl (packet.header.id)},
                            .byte_count = htonl (packet.byte_count)};
-    memcpy (out_packet.payload, packet.payload, packet.byte_count);
+    memcpy (out_packet.payload.begin (), packet.payload.begin (),
+            packet.byte_count);
 
     // Only send size assigned of full allocation
     size_t len = sizeof (packet.header.id) + sizeof (packet.byte_count)
@@ -115,6 +117,34 @@ inline ssize_t receive_ack (int sock, AckPacket& packet, ms_t ack_timeout)
         packet.header.id = ntohl (packet.header.id);
 
     return ret;
+}
+
+/**
+ * Receive all acks
+ */
+inline std::set<id_t> receive_all_acks (int sock, ms_t ack_timeout)
+{
+    std::set<id_t> ack_ids;
+
+    pollfd pollfds[1] = {{.fd = sock, .events = POLLIN}};
+    int ready = poll (pollfds, 1, (int)ack_timeout);
+
+    if (ready < 1)
+        return ack_ids;  // empty set
+
+    while (true)
+    {
+        AckPacket packet{};
+        ssize_t ret = recv (sock, &packet, sizeof (AckPacket), MSG_DONTWAIT);
+
+        if (ret <= 0)
+            break;  // nothing left in buffer
+
+        packet.header.id = ntohl (packet.header.id);
+        ack_ids.insert (packet.header.id);
+    }
+
+    return ack_ids;
 }
 
 /*

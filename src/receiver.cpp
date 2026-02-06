@@ -7,6 +7,17 @@
 #include "consts.h"
 #include <cstdlib>
 #include <iostream>
+#include <set>
+
+/**
+ * Handle incoming data packet, return true on success
+ */
+bool handle_data_packet (const DataPacket& data_packet)
+{
+    std::cout << "ID " << data_packet.header.id << " Received."
+                << std::endl;
+    return true;
+}
 
 /**
  * Runner
@@ -41,7 +52,9 @@ int main (int argc, char* argv[])
     if (debug)
         std::cout << "Receiving..." << std::endl;
 
-    DataPacket data_packet;
+    std::set<DataPacket> in_buf {};
+    DataPacket data_packet {};
+    id_t last_handled_id = -1;      // intentional overflow
 
     while (true)
     {
@@ -52,6 +65,9 @@ int main (int argc, char* argv[])
             continue;
         }
 
+        if ((data_packet.header.id > last_handled_id) || (last_handled_id == -1))
+            in_buf.insert (data_packet);
+
         // Send ack
         AckPacket ack = {.header = {.type = PacketType::Ack,
                                     .id = data_packet.header.id}};
@@ -59,8 +75,17 @@ int main (int argc, char* argv[])
         if (send_ack (sock, ack, ack_dest_addr) < 0)
             std::cerr << "Issue sending ack to socket" << std::endl;
 
-        if (debug)
-            std::cout << "ID " << data_packet.header.id << " Received."
-                      << std::endl;
+        while (!in_buf.empty ())
+        {
+            auto handle_it = in_buf.begin ();
+            // If cannot handle contiguous, keep waiting
+            if (handle_it->header.id != (last_handled_id + 1))
+                break;
+                
+            handle_data_packet (*handle_it);
+            ++last_handled_id;
+
+            in_buf.erase (handle_it);
+        }
     }
 }

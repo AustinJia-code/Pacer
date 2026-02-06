@@ -2,24 +2,24 @@
 UDP-based transport and network emulator for studying packet pacing, burst loss,
 and recovery under high-latency directional links.
 
-# Build:
+### Build:
 ```bash
 cd build
 cmake ..
 make
 ```
 
-# Run:
-In separate terminals:                                                         \
-```./sender [bind port] [dest port]```                                         \
+### Run:
+In separate terminals, preferably in order:                                    \
+```./receiver [bind port] [ack dest port]```                                   \
 ```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]``` \
-```./receiver [bind port] [ack dest port]```
+```./sender [bind port] [dest port]```                                         \
 
 Example:       
 ``` bash                                                                    
-./sender 9000 9001
+./receiver 9003 9002      
 ./emulator 9001 9002 9003 9000 random-loss
-./receiver 9003 9002                                                                 
+./sender 9000 9001
 ```
 ```mermaid
 %%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#1e3a5f','primaryTextColor':'#fff','primaryBorderColor':'#4a90e2','lineColor':'#4a90e2','secondaryColor':'#2d5986','tertiaryColor':'#1a1a2e'}}}%%

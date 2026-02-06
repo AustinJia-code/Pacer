@@ -6,6 +6,7 @@
 #pragma once
 
 #include "types.h"
+#include <array>
 
 static constexpr size_t MAX_PAYLOAD_BYTE_COUNT = (2 << 10);
 
@@ -25,6 +26,11 @@ struct PacketHeader
 {
     PacketType type;
     id_t id;
+
+    bool operator < (const PacketHeader& rhs) const
+    {
+        return this->id < rhs.id;
+    } 
 };
 
 /**
@@ -42,7 +48,12 @@ struct DataPacket
 {
     PacketHeader header;
     size_t byte_count;
-    byte_t payload[MAX_PAYLOAD_BYTE_COUNT];
+    std::array<byte_t, MAX_PAYLOAD_BYTE_COUNT> payload = {};
+
+    bool operator < (const DataPacket& rhs) const
+    {
+        return this->header < rhs.header;
+    }
 };
 
 /**

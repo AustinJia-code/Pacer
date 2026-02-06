@@ -6,9 +6,70 @@
 #include "network.h"
 #include "helpers.h"
 #include "consts.h"
+#include "packet.h"
 #include <cstdlib>
 #include <iostream>
 #include <unistd.h>
+#include <set>
+
+/**
+ * Handler for packet window
+ */
+class Window
+{
+private:
+    static constexpr size_t max_size = 10;
+
+public:
+    // <DataPacket, ack received>
+    std::array<std::pair<DataPacket, bool>, max_size> out_buffer = {};
+
+    // number of slots populated
+    size_t n = 0;   
+
+    /**
+     * Move start of the internal buffer to out_buffer and update n
+     * Returns number of slots opened
+     */
+    size_t try_shift ()
+    {
+        size_t ind = 0;
+        while (ind < n && out_buffer[ind].second)
+            ++ind;
+
+        std::move
+        (
+            out_buffer.begin () + ind,
+            out_buffer.end (),
+            out_buffer.begin ()
+        );
+
+        n -= ind;
+        return ind;
+    }
+
+    /**
+     * Returns false if add unsuccessful
+     */
+    bool add (DataPacket packet)
+    {
+        if (n == max_size)
+            return false;
+        
+        out_buffer[n++] = std::make_pair (packet, false);        
+        return true;
+    }
+
+    /**
+     * Set packets as acknowledged
+     */
+    void set_acks (const std::set<id_t> ack_ids)
+    {
+        for (size_t ind = 0; ind < n; ++ind)
+            if (ack_ids.contains (out_buffer[ind].first.header.id))
+                out_buffer[ind].second = true;
+    }
+};
 
 /**
  * Runner
@@ -45,22 +106,37 @@ int main (int argc, char* argv[])
 
     DataPacket data_packet;
     AckPacket ack_packet;
+    
+    Window window {};
+    bool complete = false;
+    id_t last_id = 0;
 
-    for (id_t id = 0; id < (2 << 10); ++id)
+    while (!complete)
     {
-        // Send data
-        data_packet.header = {.type = PacketType::Data, .id = id};
-        data_packet.byte_count = 0;
+        // receive all acks, set in window
+        std::set<id_t> ack_ids = receive_all_acks (sock, ack_timeout);
+        window.set_acks (ack_ids);
+        
+        // shift window
+        window.try_shift ();
+        
+        // for all in window, if no ack resend
+        for (size_t ind = 0; ind < window.n; ++ind)
+            if (send_data (sock, window.out_buffer[ind].first,
+                           data_dest_addr) < 0)
+                std::cerr << "Issue sending to socket" << std::endl;
 
-        if (debug)
-            std::cout << "Sending ID " << data_packet.header.id << std::endl;
+        // add to end until window_size reached
+        for (id_t id = last_id; last_id < (2 << 10); ++id)
+        {
+            data_packet.header = {.type = PacketType::Data, .id = id};
+            data_packet.byte_count = 0;
 
-        if (send_data (sock, data_packet, data_dest_addr) < 0)
-            std::cerr << "Issue sending to socket" << std::endl;
-
-        // Listen for ack, retransmit if needed (sloppy implementation)
-        if (receive_ack (sock, ack_packet, ack_timeout) < 1)
-            --id;
+            if (!window.add (data_packet))
+                break;
+            
+            last_id = id;
+        }
 
         usleep (sec_to_us ({sec_t {0.1}}));
     }
