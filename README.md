@@ -23,7 +23,7 @@ Creates a tmux session with receiver, emulator, and sender panes.
 ```cd build```, then in separate terminals:                                     \
 ```./receiver [bind port] [ack dest port]```                                   \
 ```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]``` \
-```./sender [bind port] [dest port]```                                         \
+```./sender [bind port] [dest port]```
 
 Example:       
 ``` bash                                                                    
