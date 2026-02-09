@@ -1,0 +1,15 @@
+#!/bin/bash
+# Launch sender, emulator, and receiver
+
+HAZARD=${1:-random-loss}
+SESSION="pacer"
+DIR="$(cd "$(dirname "$0")/build" && pwd)"
+
+tmux kill-session -t $SESSION 2>/dev/null
+
+tmux new-session  -d -s $SESSION -c "$DIR" "./sender 9000 9001"
+tmux split-window -v -t $SESSION -c "$DIR" "./emulator 9001 9002 9003 9000 $HAZARD"
+tmux split-window -v -t $SESSION -c "$DIR" "./receiver 9003 9002"
+tmux select-layout -t $SESSION even-vertical
+
+tmux attach -t $SESSION

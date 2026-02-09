@@ -10,7 +10,17 @@ make
 ```
 
 ### Run:
-In separate terminals, preferably in order:                                    \
+**Using ```run.sh```:**
+```bash
+./run.sh [random-loss | burst-loss | random-jitter]    # default random-loss
+```
+
+Creates a tmux session with receiver, emulator, and sender panes.
+
+**Manually:**
+*Note: it is probably easier to edit ```run.sh```, telemetry is written for tmux, not standard terminal*
+
+```cd build```, then in separate terminals:                                     \
 ```./receiver [bind port] [ack dest port]```                                   \
 ```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]``` \
 ```./sender [bind port] [dest port]```                                         \

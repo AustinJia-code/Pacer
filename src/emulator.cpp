@@ -5,7 +5,6 @@
  */
 
 #include "network.h"
-#include "consts.h"
 #include "hazards.h"
 #include "metrics.h"
 #include "helpers.h"
@@ -130,19 +129,21 @@ int main (int argc, char* argv[])
     auto args = parse_args (argc, argv);
     if (!args)
         return EXIT_FAILURE;
-    
+
+    std::string hazard_name = argv[5];
+
     constexpr size_t nfds = 2;
     pollfd pollfds[nfds] = {{.fd = args->receive_sock, .events = POLLIN},
                             {.fd = args->send_sock, .events = POLLIN}};
     constexpr int timeout = (int) (ms_t {1});
 
     /**** START EMULATE ****/
-    if (debug)
-        std::cout << "Starting Emulation..." << std::endl;
-
     UnionPacket packet {};
     std::priority_queue<TimedPacket, std::vector<TimedPacket>,
                         std::greater<TimedPacket>> out_queue {};
+
+    EmulatorMetrics metrics {};
+    Display display {};
 
     while (true)
     {
@@ -175,8 +176,9 @@ int main (int argc, char* argv[])
         }
 
         /*** APPLY HAZARDS ***/
-        if (debug)
-            std::cout << "Applying hazards" << std::endl;
+        id_t pkt_id = packet.ack_packet.header.id;
+        std::string type_str = packet.ack_packet.header.type == PacketType::Data
+                             ? "data" : "ack";
 
         auto effects = std::visit (
             [&] (auto& h) { return h.get_effects (packet.ack_packet.header.type,
@@ -185,11 +187,24 @@ int main (int argc, char* argv[])
 
         if (effects.drop)
         {
-            if (debug)
-                std::cout << "Dropped ID " << packet.ack_packet.header.id
-                            << std::endl;
+            ++metrics.dropped;
+            display.add_event ("Dropped  ID " + std::to_string (pkt_id) +
+                               " (" + type_str + ")");
+
+            std::string stats =
+                "  Fwd Data: " + std::to_string (metrics.fwd_data) +
+                "  |  Fwd Ack: " + std::to_string (metrics.fwd_acks) +
+                "  |  Dropped: " + std::to_string (metrics.dropped) +
+                "  |  Queued: " + std::to_string (out_queue.size ());
+
+            display.render ("--- Emulator (" + hazard_name + ") ---", stats);
             continue;
-        }   
+        }
+
+        if (effects.delay > 0)
+            display.add_event ("Queued   ID " + std::to_string (pkt_id) +
+                               " (+" + std::to_string (effects.delay) +
+                               "ms)");
 
         out_queue.emplace (time_ms + effects.delay, packet);
 
@@ -201,22 +216,18 @@ int main (int argc, char* argv[])
                 case PacketType::Data:
                 {
                     DataPacket out_data = out_queue.top ().packet.data_packet;
-
-                    if (debug)
-                        std::cout << "Forwarding ID " << out_data.header.id
-                                  << std::endl;
-
+                    ++metrics.fwd_data;
+                    display.add_event ("Fwd Data ID " +
+                                       std::to_string (out_data.header.id));
                     send_data (args->send_sock, out_data, args->data_dest_addr);
                     break;
                 }
                 case PacketType::Ack:
                 {
                     AckPacket out_ack = out_queue.top ().packet.ack_packet;
-
-                    if (debug)
-                        std::cout << "Forwarding ACK " << out_ack.header.id
-                                  << std::endl;
-
+                    ++metrics.fwd_acks;
+                    display.add_event ("Fwd Ack  ID " +
+                                       std::to_string (out_ack.header.id));
                     send_ack (args->receive_sock, out_ack, args->ack_dest_addr);
                     break;
                 }
@@ -226,8 +237,17 @@ int main (int argc, char* argv[])
                     break;
                 }
             }
-            
+
             out_queue.pop ();
         }
+
+        // Render display
+        std::string stats =
+            "  Fwd Data: " + std::to_string (metrics.fwd_data) +
+            "  |  Fwd Ack: " + std::to_string (metrics.fwd_acks) +
+            "  |  Dropped: " + std::to_string (metrics.dropped) +
+            "  |  Queued: " + std::to_string (out_queue.size ());
+
+        display.render ("--- Emulator (" + hazard_name + ") ---", stats);
     }
 }
