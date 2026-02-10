@@ -12,25 +12,14 @@ make
 ### Run:
 **Using ```run.sh```:**
 ```bash
-./run.sh [random-loss | burst-loss | random-jitter]    # default random-loss
+./run.sh [random-loss | burst-loss | random-jitter | shallow-buffer] [--paced]
 ```
 
 Creates a tmux session with receiver, emulator, and sender panes.
 
-**Manually:**
-*Note: it is probably easier to edit ```run.sh```, telemetry is written for tmux, not standard terminal*
-
-```cd build```, then in separate terminals:                                     \
-```./receiver [bind port] [ack dest port]```                                   \
-```./emulator [recv bind] [ack bind] [receiver port] [sender port] [hazard]``` \
-```./sender [bind port] [dest port]```
-
-Example:       
-``` bash                                                                    
-./receiver 9003 9002      
-./emulator 9001 9002 9003 9000 random-loss
-./sender 9000 9001
-```
+**Under the Hood**:
+The bash runs the receiver, emulater, and sender, to make a mini network
+that looks like:    
 ```mermaid
 %%{init: {'theme':'dark', 'themeVariables': { 'primaryColor':'#1e3a5f','primaryTextColor':'#fff','primaryBorderColor':'#4a90e2','lineColor':'#4a90e2','secondaryColor':'#2d5986','tertiaryColor':'#1a1a2e'}}}%%
 

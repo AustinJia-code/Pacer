@@ -8,6 +8,7 @@
 #include "hazards.h"
 #include "metrics.h"
 #include "helpers.h"
+#include "display.h"
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -46,7 +47,7 @@ struct Args
     int send_sock;
     sockaddr_in ack_dest_addr;
     sockaddr_in data_dest_addr;
-    std::variant<RandomLoss, BurstLoss, RandomJitter> hazard;
+    std::variant<RandomLoss, BurstLoss, ShallowBuffer, RandomJitter> hazard;
 };
 
 /**
@@ -96,18 +97,20 @@ std::optional<Args> parse_args (int argc, char* argv[])
 
     // [hazard]
     std::string hazard_name = argv[5];
-    std::variant<RandomLoss, BurstLoss, RandomJitter> hazard;
+    std::variant<RandomLoss, BurstLoss, ShallowBuffer, RandomJitter> hazard;
 
     if (hazard_name == "random-loss")
         hazard = RandomLoss {};
     else if (hazard_name == "burst-loss")
         hazard = BurstLoss {};
+    else if (hazard_name == "shallow-buffer")
+        hazard = ShallowBuffer {};
     else if (hazard_name == "random-jitter")
         hazard = RandomJitter {};
     else
     {
         std::cerr << "Unknown hazard: " << hazard_name << std::endl;
-        std::cerr << "Hazards: random-loss, burst-loss, random-jitter"
+        std::cerr << "Hazards: random-loss, burst-loss, shallow-buffer, random-jitter"
                   << std::endl;
         return std::nullopt;
     }

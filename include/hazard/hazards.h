@@ -2,10 +2,12 @@
  * @file profiles.h
  * @brief Declares specific HazardProfiles
  */
+
 #pragma once
 
 #include "hazards.h"
 #include "effects.h"
+#include "helpers.h"
 #include <random>
 #include <algorithm>
 #include <packet.h>
@@ -93,6 +95,51 @@ public:
         }
 
         return effects;
+    }
+};
+
+/**
+ * Simulates a router with a small packet buffer.
+ * Packets arriving when buffer is full are tail-dropped.
+ * Buffer drains at a fixed rate (link bandwidth).
+ *
+ * Punishes bursty senders: a burst of 10 into a buffer of 6 = 4 dropped.
+ * A paced burst of 5 fits cleanly.
+ */
+class ShallowBuffer : public HazardProfile
+{
+private:
+    size_t capacity;
+    size_t occupied = 0;
+    double drain_rate;
+    ms_t last_drain;
+
+public:
+    ShallowBuffer (size_t capacity = 5, double drain_rate = 60.0)
+        : capacity (capacity), drain_rate (drain_rate),
+          last_drain (get_time_ms ()) {}
+
+    Effects get_effects (PacketType type, id_t id) override
+    {
+        // Acks are tiny, only buffer data (forward path)
+        if (type == PacketType::Ack)
+            return Effects {.drop = false, .delay = ms_t {0}};
+
+        ms_t now = get_time_ms ();
+        if (now > last_drain)
+        {
+            double elapsed_sec = (now - last_drain) / 1000.0;
+            size_t drained = (size_t) (elapsed_sec * drain_rate);
+            if (drained > occupied) drained = occupied;
+            occupied -= drained;
+            last_drain = now;
+        }
+
+        if (occupied >= capacity)
+            return Effects {.drop = true, .delay = ms_t {0}};
+
+        ++occupied;
+        return Effects {.drop = false, .delay = ms_t {0}};
     }
 };
 

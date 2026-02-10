@@ -4,11 +4,14 @@
  */
 
 #include "network.h"
+#include "helpers.h"
 #include "metrics.h"
+#include "display.h"
 #include <cstdlib>
 #include <iostream>
 #include <set>
 #include <string>
+#include <cstdio>
 
 /**
  * Runner
@@ -47,6 +50,10 @@ int main (int argc, char* argv[])
     ReceiverMetrics metrics {};
     Display display {};
 
+    ms_t rate_window_start = get_time_ms ();
+    size_t rate_window_count = 0;
+    float current_rate = 0.0f;
+
     while (true)
     {
         // Receive data
@@ -54,6 +61,7 @@ int main (int argc, char* argv[])
             continue;
 
         ++metrics.total_received;
+        ++rate_window_count;
         id_t id = data_packet.header.id;
         bool is_new = false;
 
@@ -63,6 +71,7 @@ int main (int argc, char* argv[])
         if (is_new)
         {
             ++metrics.unique_received;
+            metrics.bytes_received += data_packet.byte_count;
             display.add_event ("Received  ID " + std::to_string (id));
         }
         else
@@ -90,12 +99,29 @@ int main (int argc, char* argv[])
             in_buf.erase (it);
         }
 
+        // Update rolling rate
+        ms_t now = get_time_ms ();
+        ms_t elapsed = now - rate_window_start;
+        if (elapsed >= 1000)
+        {
+            current_rate = rate_window_count / (elapsed / 1000.0f);
+            rate_window_count = 0;
+            rate_window_start = now;
+        }
+
+        char rate_buf[32];
+        std::snprintf (rate_buf, sizeof (rate_buf), "%.0f", current_rate);
+
+        char kbps_buf[32];
+        std::snprintf (kbps_buf, sizeof (kbps_buf), "%.1f",
+                       metrics.bytes_received / 1024.0f);
+
         // Render display
         std::string stats =
-            "  Received: " + std::to_string (metrics.total_received) +
-            "  |  Unique: " + std::to_string (metrics.unique_received) +
-            "  |  Duplicates: " +
-                std::to_string (metrics.total_received - metrics.unique_received) +
+            "  Rate: " + std::string (rate_buf) + " pkt/s" +
+            "  |  Received: " + std::to_string (metrics.unique_received) +
+                "/" + std::to_string (metrics.total_received) +
+            "  |  KB: " + kbps_buf +
             "  |  Buffered: " + std::to_string (in_buf.size ());
 
         display.render ("--- Receiver ---", stats);
