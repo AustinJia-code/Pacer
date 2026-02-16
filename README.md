@@ -51,3 +51,8 @@ graph LR
     class E1,E2 emulatorStyle
     class R receiverStyle
 ```
+
+### Future Work:
+* Multiplex the socket into independent, non-interblocking streams
+* Checksums
+* NACK codes
